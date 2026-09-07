@@ -4,7 +4,7 @@
 
 使用 Kotlin、Jetpack Compose 與 Material 3 Expressive 開發的原生 Android 通話紀錄編輯與備份工具。
 
-目前開發版：**0.1.1-Dev** · 版本代碼：**20260907** · 套件名稱：`com.twilight.calleditor`
+套件名稱：`com.twilight.calleditor` · [下載安裝包與查看更新](https://github.com/TG-Twilight/Call.Editor/releases)
 
 ## 功能
 
@@ -44,7 +44,7 @@ Windows 使用 `gradlew.bat`。首次建置需連線下載 Gradle 與 Maven 相�
 
 產物位於 `native/app/build/outputs/apk/release/`，預設為**未簽署的 release APK**。正式交付使用維護者固定憑證，不使用 Android Debug 憑證。維護者的 Windows 簽署流程見[建置說明](../native/README.md)；儲存庫不包含金鑰與密碼。
 
-技術基線：Gradle 8.14.3、AGP 8.13.1、Kotlin 2.2.21、Compose BOM 2026.05.00、Material3 1.5.0-alpha10；compileSdk 36、targetSdk 34。Expressive API 屬實驗性版本，不代表最新 Material3 版本。
+工具鏈、相依套件與 SDK 版本以 `native/` 中的 Gradle 設定為準。專案使用實驗性 Material3 Expressive API。
 
 ## 目錄
 
@@ -70,3 +70,7 @@ Windows 使用 `gradlew.bat`。首次建置需連線下載 Gradle 與 Maven 相�
 <a href="https://openai.com/index/gpt-6-astra/"><img src="../native/app/src/main/res/drawable-nodpi/avatar_openai.png" width="56" height="56" alt="GPT-6-Astra 頭像" /></a>
 
 [GPT-6-Astra](https://openai.com/index/gpt-6-astra/) — AI 開發協作。
+
+## 授權條款
+
+本專案採用 [GNU GPL v3](../LICENSE) 授權條款。第三方相依套件與圖形標識保留各自的授權與權利，圖片來源見[資源說明](ASSETS.md)。

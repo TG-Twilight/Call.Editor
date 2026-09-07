@@ -4,7 +4,7 @@
 
 A native Android call log editor and backup tool built with Kotlin, Jetpack Compose, and Material 3 Expressive.
 
-Development version: **0.1.1-Dev** · Version code: **20260907** · Application ID: `com.twilight.calleditor`
+Application ID: `com.twilight.calleditor` · [Downloads and release notes](https://github.com/TG-Twilight/Call.Editor/releases)
 
 ## Features
 
@@ -44,7 +44,7 @@ Use `gradlew.bat` on Windows. The first build downloads Gradle and Maven depende
 
 The output in `native/app/build/outputs/apk/release/` is an **unsigned release APK**. Distributed builds use the maintainer's fixed certificate, never an Android Debug certificate. See [build notes](../native/README.md) for the Windows signing workflow. Keys and passwords are not included.
 
-Baseline: Gradle 8.14.3, AGP 8.13.1, Kotlin 2.2.21, Compose BOM 2026.05.00, Material3 1.5.0-alpha10; compileSdk 36, targetSdk 34. The Expressive API is experimental; this is not the latest Material3 release.
+The Gradle configuration in `native/` is the source of truth for toolchain, dependency, and SDK versions. The project uses experimental Material3 Expressive APIs.
 
 ## Project structure
 
@@ -70,3 +70,7 @@ Include the Android version, device model, and reproduction steps. Remove real p
 <a href="https://openai.com/index/gpt-6-astra/"><img src="../native/app/src/main/res/drawable-nodpi/avatar_openai.png" width="56" height="56" alt="GPT-6-Astra avatar" /></a>
 
 [GPT-6-Astra](https://openai.com/index/gpt-6-astra/) — AI development collaboration.
+
+## License
+
+This project is licensed under [GNU GPL v3](../LICENSE). Third-party dependencies and graphic marks retain their respective licenses and rights; see [asset attribution](ASSETS.md).

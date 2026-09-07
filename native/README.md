@@ -1,6 +1,6 @@
 ﻿# 原生工程构建说明
 
-项目介绍与功能见 [简体中文 README](../README.md)。应用包名 `com.twilight.calleditor`，versionCode `20260907`，versionName `0.1.1-Dev`。
+项目介绍与功能见 [简体中文 README](../README.md)。应用包名 `com.twilight.calleditor`。版本配置以 `app/build.gradle.kts` 为准，安装包与更新说明见 [GitHub Releases](https://github.com/TG-Twilight/Call.Editor/releases)。
 
 ## 开发构建
 
@@ -12,7 +12,7 @@
 
 Linux/macOS 使用 `./gradlew`。第一次下载 Gradle 和依赖需要联网；缓存就绪后可加 `--offline`。标准构建输出 `app/build/outputs/apk/release/app-release-unsigned.apk`，不自动使用 Debug 证书。
 
-Gradle Wrapper 固定 8.14.3；AGP 8.13.1、Kotlin 2.2.21、Compose BOM 2026.05.00、Material3 1.5.0-alpha10。compileSdk 36、targetSdk 34、minSdk 26。
+Gradle 版本见 `gradle/wrapper/gradle-wrapper.properties`；插件、依赖及 SDK 配置见 `build.gradle.kts` 和 `app/build.gradle.kts`。
 
 ## 维护者签名（Windows）
 

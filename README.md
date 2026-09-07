@@ -4,7 +4,7 @@
 
 基于 Kotlin、Jetpack Compose 与 Material 3 Expressive 的原生 Android 通话记录编辑与备份工具。
 
-当前开发版：**0.1.1-Dev** · 版本号：**20260907** · 包名：`com.twilight.calleditor`
+包名：`com.twilight.calleditor` · [下载安装包与查看更新](https://github.com/TG-Twilight/Call.Editor/releases)
 
 ## 功能
 
@@ -44,7 +44,7 @@ Windows 使用 `gradlew.bat`。首次构建需要联网下载 Gradle 和 Maven �
 
 产物位于 `native/app/build/outputs/apk/release/`，默认是**未签名 release APK**。正式交付使用维护者固定证书，不使用 Android Debug 证书。维护者的 Windows 签名流程见 [构建说明](native/README.md)；密钥和密码不包含在仓库中。
 
-技术基线：Gradle 8.14.3、AGP 8.13.1、Kotlin 2.2.21、Compose BOM 2026.05.00、Material3 1.5.0-alpha10；compileSdk 36、targetSdk 34。Material3 为实验性 Expressive API 版本，不代表最新版本。
+具体工具链、依赖与 SDK 版本以 `native/` 中的 Gradle 配置为准。项目使用实验性 Material3 Expressive API。
 
 ## 目录
 
@@ -75,3 +75,7 @@ readme/ASSETS.md         图片来源说明
 <a href="https://openai.com/index/gpt-6-astra/"><img src="native/app/src/main/res/drawable-nodpi/avatar_openai.png" width="56" height="56" alt="GPT-6-Astra 头像" /></a>
 
 [GPT-6-Astra](https://openai.com/index/gpt-6-astra/) — AI 开发协作。
+
+## 许可证
+
+本项目采用 [GNU GPL v3](LICENSE) 许可证。第三方依赖和图形标识保留各自的许可与权利，图片来源见 [资源说明](readme/ASSETS.md)。

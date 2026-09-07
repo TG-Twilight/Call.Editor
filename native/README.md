@@ -1,0 +1,38 @@
+﻿# 原生工程构建说明
+
+项目介绍与功能见 [简体中文 README](../README.md)。应用包名 `com.twilight.calleditor`，versionCode `20260907`，versionName `0.1.1-Dev`。
+
+## 开发构建
+
+需要完整 JDK 21、Android SDK Platform 36、Build Tools 37.0.0。通过 `ANDROID_HOME` 或本机 `local.properties` 配置 SDK。Windows 示例：
+
+```powershell
+./gradlew.bat :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease
+```
+
+Linux/macOS 使用 `./gradlew`。第一次下载 Gradle 和依赖需要联网；缓存就绪后可加 `--offline`。标准构建输出 `app/build/outputs/apk/release/app-release-unsigned.apk`，不自动使用 Debug 证书。
+
+Gradle Wrapper 固定 8.14.3；AGP 8.13.1、Kotlin 2.2.21、Compose BOM 2026.05.00、Material3 1.5.0-alpha10。compileSdk 36、targetSdk 34、minSdk 26。
+
+## 维护者签名（Windows）
+
+`build.ps1` 执行 release 测试、构建、lint、16 KB zipalign、签名、证书校验和 SHA-256 记录，输出到仓库根目录的 `dist/`。默认离线；`-Online` 允许 Gradle 下载依赖，但不会自动设置 Java 代理。
+
+配置 `REVIA_KEYSTORE` 和 `REVIA_KEY_ALIAS`，或在被 Git 忽略的 `native/signing.local.properties` 中设置 `KeystorePath` 与 `KeyAlias`。密码只从 Windows 用户级环境变量 `REVIA_KS_PASS` 读取，不写入配置文件。
+
+```powershell
+# 在仓库根目录执行；本机签名信息须事先配置。
+& ./native/build.ps1
+```
+
+脚本优先使用标准安装目录下 Android Studio 的完整 JBR，否则使用 `JAVA_HOME`。签名工具从 `ANDROID_HOME`、`ANDROID_SDK_ROOT` 或 Windows 默认 SDK 安装目录解析，固定使用 Build Tools 37.0.0。
+
+正式证书 SHA-256：`EA385AFC82E19824EEA8A8868ED365DF03E9886BBBA33E47E1E04B43EC65CB67`。脚本会拒绝其他证书。仓库不分发维护者密钥；本地未签名构建不需要密钥。
+
+## 数据兼容
+
+系统 CallLog 是记录来源。编辑只更新变化字段；恢复追加并去重。包名调整不修改备份协议标识，仍使用 `com.android.calleditor.calllog`、version 1。
+
+新包名与早期 `com.android.calleditor` 是两个独立应用，不覆盖迁移私有设置。不得以卸载或清数据方式处理升级问题。
+
+写入中的配置重建／系统强杀、跨设备电话账户映射及更多设备兼容仍需完善。短信功能尚未实现。

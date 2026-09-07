@@ -1,0 +1,22 @@
+# Public repository allowlist. Local research and device data stay private.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/native/
+!/readme/
+
+**/.gradle/
+**/.kotlin/
+**/build/
+**/.idea/
+**/local.properties
+**/signing.local.properties
+**/*.iml
+**/*.apk
+**/*.aab
+**/*.idsig
+**/*.jks
+**/*.keystore
+**/*.log
+**/.DS_Store

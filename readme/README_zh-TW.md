@@ -21,7 +21,7 @@
 
 以下為淺色模式下的實際應用程式截圖，依序為通話紀錄、編輯紀錄與設定頁面。示範資料包含十組隨機產生的虛構姓名與號碼，清單已篩選為範例紀錄；不顯示真實聯絡人或號碼。介面目前使用簡體中文，本文件為繁體中文說明。
 
-<img src="screenshots/calls.png" width="280" alt="淺色通話紀錄頁面，使用虛構範例資料" /> <img src="screenshots/editor.png" width="280" alt="淺色通話紀錄編輯頁面，使用虛構姓名與號碼" /> <img src="screenshots/settings.png" width="280" alt="淺色設定頁面" />
+<img src="screenshots/overview.png" width="840" alt="淺色模式：通話紀錄、編輯紀錄、設定，使用虛構範例資料" />
 
 ## 使用與資料
 

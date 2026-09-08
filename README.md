@@ -21,7 +21,7 @@
 
 以下为浅色模式下的实际应用截图，依次为通话记录、编辑记录和设置页面。演示数据包含十组随机生成的虚构姓名与号码，列表已筛选为示例记录；不展示真实联系人或号码。应用界面目前为简体中文。
 
-<img src="readme/screenshots/calls.png" width="280" alt="浅色通话记录页面，使用虚构示例数据" /> <img src="readme/screenshots/editor.png" width="280" alt="浅色通话记录编辑页面，使用虚构姓名与号码" /> <img src="readme/screenshots/settings.png" width="280" alt="浅色设置页面" />
+<img src="readme/screenshots/overview.png" width="840" alt="浅色模式：通话记录、编辑记录、设置，使用虚构示例数据" />
 
 ## 使用与数据
 

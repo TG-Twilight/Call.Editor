@@ -21,7 +21,7 @@ Application ID: `com.twilight.calleditor` · [Downloads and release notes](https
 
 Actual app screenshots in light mode, showing the call list, record editor, and settings. The demo contains ten randomly generated fictional names and numbers, with the list filtered to these sample records. No real contacts or numbers are shown. The app interface is currently in Simplified Chinese; this document is an English translation.
 
-<img src="screenshots/calls.png" width="280" alt="Call list in light mode with fictional sample data" /> <img src="screenshots/editor.png" width="280" alt="Record editor in light mode with a fictional name and number" /> <img src="screenshots/settings.png" width="280" alt="Settings in light mode" />
+<img src="screenshots/overview.png" width="840" alt="Light mode: call list, record editor, and settings" />
 
 ## Requirements and data
 

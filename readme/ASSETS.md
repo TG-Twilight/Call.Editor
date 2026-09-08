@@ -1,6 +1,6 @@
 # 资源说明
 
-- 应用截图：本项目自行拍摄，仅展示无私人数据的页面。
+- 应用截图：本项目自行拍摄。README 的通话列表、编辑页与设置页均使用浅色模式；通话演示数据为十组随机生成的虚构姓名与号码，列表通过专用演示号码前缀筛选，编辑页只展示虚构记录，不含真实联系人或号码。
 - `native/app/src/main/res/drawable-nodpi/avatar_openai.png`：下载自 [OpenAI 的 GitHub 公开头像](https://github.com/openai.png?size=128)，用于 GPT-6-Astra 贡献者条目的机构头像。图形标识属于其权利人，不表示 OpenAI 为本项目提供官方背书。
 - 应用内电话等图标：本项目的 Android VectorDrawable／Compose ImageVector。
 - 桌面图标：复用应用内 `AppIcon.Calls` 电话听筒路径，采用纯色背景与独立实心前景；普通自适应图标随系统浅／深色切换，Android 12 起使用系统 Monet 配色，Android 13 起提供供桌面主题取色的单色层。桌面图标不受应用内主题开关控制。

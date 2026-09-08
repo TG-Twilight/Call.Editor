@@ -19,9 +19,9 @@
 
 ## 畫面
 
-以下為實際應用程式截圖，不含私人紀錄；介面目前使用簡體中文，本文件為繁體中文說明。
+以下為淺色模式下的實際應用程式截圖，依序為通話紀錄、編輯紀錄與設定頁面。示範資料包含十組隨機產生的虛構姓名與號碼，清單已篩選為範例紀錄；不顯示真實聯絡人或號碼。介面目前使用簡體中文，本文件為繁體中文說明。
 
-<img src="screenshots/settings.png" width="280" alt="設定頁面" /> <img src="screenshots/about.png" width="280" alt="關於頁面與貢獻者" />
+<img src="screenshots/calls.png" width="280" alt="淺色通話紀錄頁面，使用虛構範例資料" /> <img src="screenshots/editor.png" width="280" alt="淺色通話紀錄編輯頁面，使用虛構姓名與號碼" /> <img src="screenshots/settings.png" width="280" alt="淺色設定頁面" />
 
 ## 使用與資料
 

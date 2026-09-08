@@ -26,25 +26,25 @@ fun PermissionPanel(modifier: Modifier = Modifier, busy: Boolean, onPermission: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackupScreen(count: Int, permission: Boolean, busy: Boolean, onPermission: () -> Unit, onSettings: () -> Unit, onExport: () -> Unit, onImport: () -> Unit) {
-    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = { TopAppBar(windowInsets = WindowInsets(0, 0, 0, 0), title = { Text("备份与恢复", fontWeight = FontWeight.Bold) }) }) { padding ->
+    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = { MediumTopAppBar(windowInsets = WindowInsets(0, 0, 0, 0), title = { Text("备份与恢复", fontWeight = FontWeight.Bold) }) }) { padding ->
         if (!permission) { PermissionPanel(Modifier.padding(padding), busy, onPermission, onSettings); return@Scaffold }
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { Text("通话记录", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary) }
             item {
-                Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Card(shape = RoundedCornerShape(32.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)) {
                     Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("导出备份", style = MaterialTheme.typography.titleLarge)
+                        BackupCardHeading(AppIcon.Backup, "导出备份")
                         Text("将当前 $count 条通话记录保存为 JSON 文件，自行选择存放位置。", style = MaterialTheme.typography.bodyMedium)
-                        Button(enabled = !busy, onClick = onExport) { Text("选择位置并导出") }
+                        ExpressiveAction("选择位置并导出", enabled = !busy, onClick = onExport, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
             item {
-                Card(shape = RoundedCornerShape(24.dp)) {
+                Card(shape = RoundedCornerShape(32.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
                     Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("从文件恢复", style = MaterialTheme.typography.titleLarge)
+                        BackupCardHeading(AppIcon.Restore, "从文件恢复")
                         Text("先检查文件并预览数量，再追加到系统记录。完全相同的记录自动跳过。", style = MaterialTheme.typography.bodyMedium)
-                        FilledTonalButton(enabled = !busy, onClick = onImport) { Text("选择备份文件") }
+                        ExpressiveAction("选择备份文件", enabled = !busy, onClick = onImport, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
@@ -58,18 +58,16 @@ fun BackupScreen(count: Int, permission: Boolean, busy: Boolean, onPermission: (
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(preferences: AppPreferences, saving: Boolean, permission: Boolean, onChange: (AppPreferences) -> Unit, onPermission: () -> Unit, onSettings: () -> Unit, onAbout: () -> Unit) {
-    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = { TopAppBar(windowInsets = WindowInsets(0, 0, 0, 0), title = { Text("设置", fontWeight = FontWeight.Bold) }) }) { padding ->
+    Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = { MediumTopAppBar(windowInsets = WindowInsets(0, 0, 0, 0), title = { Text("设置", fontWeight = FontWeight.Bold) }) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item { SectionLabel("外观") }
             item {
-                SettingsGroup {
+                SettingsGroup(shape = connectedShape(last = false)) {
                     Text("主题模式", style = MaterialTheme.typography.titleMedium)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("system" to "跟随系统", "light" to "浅色", "dark" to "深色").forEach { (key, title) ->
-                            FilterChip(selected = preferences.theme == key, enabled = !saving, onClick = { onChange(preferences.copy(theme = key)) }, label = { Text(title) })
-                        }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    ThemeChoices(preferences.theme, !saving) { onChange(preferences.copy(theme = it)) }
+                }
+                Spacer(Modifier.height(4.dp))
+                SettingsGroup(shape = connectedShape(first = false)) {
                     ToggleSetting("动态配色", if (Build.VERSION.SDK_INT >= 31) "使用系统壁纸的颜色" else "需要 Android 12 或更高版本", preferences.dynamicColor, !saving && Build.VERSION.SDK_INT >= 31) { onChange(preferences.copy(dynamicColor = it)) }
                 }
             }
@@ -87,10 +85,16 @@ fun SettingsScreen(preferences: AppPreferences, saving: Boolean, permission: Boo
                 }
             }
             item {
-                Card(onClick = onAbout, shape = RoundedCornerShape(24.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("关于", style = MaterialTheme.typography.titleMedium)
-                        Text("${BuildConfig.VERSION_NAME} · 项目与贡献者", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Surface(onClick = onAbout, shape = connectedShape(),
+                    color = settingsContainerColor(),
+                    contentColor = MaterialTheme.colorScheme.onSurface) {
+                    Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ExpressiveBadge(AppIcon.Info)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("关于", style = MaterialTheme.typography.titleLarge)
+                            Text("${BuildConfig.VERSION_NAME} · 项目与贡献者", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        AppSymbol(AppIcon.Forward)
                     }
                 }
             }
@@ -99,11 +103,19 @@ fun SettingsScreen(preferences: AppPreferences, saving: Boolean, permission: Boo
 }
 
 @Composable
-private fun SectionLabel(text: String) { Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }
+private fun SectionLabel(text: String) { Text(text, modifier = Modifier.padding(start = 12.dp, top = 8.dp), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) }
 
 @Composable
-private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
-    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
+private fun BackupCardHeading(icon: AppIcon, title: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        AppSymbol(icon, modifier = Modifier.size(24.dp))
+        Text(title, style = MaterialTheme.typography.headlineSmall)
+    }
+}
+
+@Composable
+private fun SettingsGroup(shape: androidx.compose.ui.graphics.Shape = connectedShape(), content: @Composable ColumnScope.() -> Unit) {
+    Surface(shape = shape, color = settingsContainerColor(), contentColor = MaterialTheme.colorScheme.onSurface) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
     }
 }

@@ -15,7 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import java.util.Calendar
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave: (CallEntry) -> Unit, onDelete: (() -> Unit)?) {
     val context = LocalContext.current
@@ -49,7 +49,7 @@ fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave:
             OutlinedTextField(duration, { duration = it }, label = { Text("通话时长（秒）") }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(16.dp))
             original.accountId?.let { Text("SIM / 电话账户：$it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Button(enabled = !busy, onClick = {
+            Button(shapes = ButtonDefaults.shapesFor(ButtonDefaults.MediumContainerHeight), enabled = !busy, onClick = {
                 val seconds = duration.toLongOrNull()
                 if (number.isBlank() && (original.id == 0L || original.number.isNotBlank())) error = "请输入电话号码"
                 else if (seconds == null) error = "请输入有效的秒数"
@@ -58,7 +58,7 @@ fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave:
                     error = value.validate()
                     if (error == null) onSave(value)
                 }
-            }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(if (busy) "正在保存…" else "保存记录") }
+            }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(if (busy) "正在保存…" else "保存记录", style = MaterialTheme.typography.titleMedium) }
             onDelete?.let { TextButton(enabled = !busy, onClick = it, modifier = Modifier.fillMaxWidth()) { Text("删除这条记录", color = MaterialTheme.colorScheme.error) } }
         }
     }

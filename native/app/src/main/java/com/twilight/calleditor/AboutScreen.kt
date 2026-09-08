@@ -29,38 +29,44 @@ fun AboutScreen(onBack: () -> Unit, onOpenLink: (String) -> Unit) {
     BackHandler(onBack = onBack)
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = {
         TopAppBar(windowInsets = WindowInsets(0, 0, 0, 0), title = { Text("关于") },
-            navigationIcon = { TextButton(onClick = onBack) { Text("返回") } })
+            navigationIcon = { IconButton(onClick = onBack) { AppSymbol(AppIcon.Back, "返回") } })
     }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {
-                Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Image(painterResource(R.drawable.ic_launcher), contentDescription = null, modifier = Modifier.size(64.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Call.Editor", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Text("${BuildConfig.VERSION_NAME} · ${BuildConfig.VERSION_CODE}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Surface(shape = RoundedCornerShape(36.dp), color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                    Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ExpressiveBadge(AppIcon.Calls, prominent = true)
+                        Text("Call.Editor", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                        Text("原生通话记录编辑与备份工具", style = MaterialTheme.typography.bodyLarge)
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
+                            Text("${BuildConfig.VERSION_NAME} · ${BuildConfig.VERSION_CODE}", modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
+                        }
                     }
                 }
             }
-            item { Text("原生通话记录编辑与备份工具", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             item { Text("项目", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }
             item {
-                Card(onClick = { onOpenLink(PROJECT_URL) }, shape = RoundedCornerShape(24.dp)) {
+                Card(onClick = { onOpenLink(PROJECT_URL) }, shape = connectedShape(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) {
                     Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("GitHub 项目", style = MaterialTheme.typography.titleMedium)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("GitHub 项目", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                            AppSymbol(AppIcon.Outgoing)
+                        }
                         Text("TG-Twilight / Call.Editor", style = MaterialTheme.typography.bodyLarge)
-                        Text("查看源码、提交问题或参与贡献", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("查看源码、提交问题或参与贡献", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
             item { Text("贡献者", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp)) }
             items(contributors, key = { it.name }) { contributor ->
-                Card(onClick = { onOpenLink(contributor.url) }, shape = RoundedCornerShape(24.dp)) {
+                Card(onClick = { onOpenLink(contributor.url) }, shape = connectedShape(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer, contentColor = MaterialTheme.colorScheme.onSurface)) {
                     Row(Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Image(painterResource(contributor.avatar), contentDescription = "${contributor.name} 头像", modifier = Modifier.size(56.dp).clip(CircleShape))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(contributor.name, style = MaterialTheme.typography.titleMedium)
                             Text(contributor.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        AppSymbol(AppIcon.Outgoing)
                     }
                 }
             }

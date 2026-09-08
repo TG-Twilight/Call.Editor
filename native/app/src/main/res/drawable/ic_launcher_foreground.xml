@@ -1,0 +1,8 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- AppIcon.Calls, centered inside the adaptive icon safe area. -->
+    <group android:scaleX="2.5" android:scaleY="2.5" android:translateX="24" android:translateY="24">
+        <path android:fillColor="@color/launcher_mark" android:pathData="M6.6,10.8 C8.1,13.7 10.3,15.9 13.2,17.4 L15.4,15.2 C15.7,14.9 16.1,14.8 16.5,15 C17.7,15.4 19,15.6 20.3,15.6 L21,16.3 L21,20 C21,20.6 20.6,21 20,21 C10.6,21 3,13.4 3,4 L4,3 L7.7,3 L8.4,3.7 C8.4,5 8.6,6.3 9,7.5 L8.8,8.6 Z"/>
+    </group>
+</vector>

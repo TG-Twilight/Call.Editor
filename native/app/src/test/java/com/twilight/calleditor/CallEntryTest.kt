@@ -6,6 +6,16 @@ import org.junit.Test
 class CallEntryTest {
     private val entry = CallEntry(number = "+886123456", name = "測試", date = 1_700_000_000_000, duration = 60, type = 1, accountId = "sim1")
 
+    @Test fun observedTypesAreNamedWithoutConfusingBlacklistAndAnswering() {
+        assertEquals("呼入（黑名单归类）", typeLabel(-1))
+        assertEquals("未接（黑名单归类）", typeLabel(-3))
+        assertEquals("已拒接（黑名单归类）", typeLabel(-5))
+        assertEquals("黑名单号码（拦截分类）", typeLabel(27))
+        assertEquals("骚扰电话（拦截分类）", typeLabel(51))
+        assertEquals("广告推销（拦截分类）", typeLabel(52))
+        assertEquals("其他（-27）", typeLabel(-27))
+    }
+
     @Test fun validationRejectsInvalidDatesDurationsAndTypes() {
         assertNull(entry.validate())
         assertNotNull(entry.copy(date = 0).validate())
@@ -18,13 +28,28 @@ class CallEntryTest {
     }
 
     @Test fun observedVendorTypesSurviveBackupAndRestoreWithoutConversion() {
-        val vendorEntries = listOf(-1, 51, 52).map { entry.copy(type = it) }
+        val vendorEntries = listOf(-5, -3, -1, 27, 51, 52).map { entry.copy(type = it) }
         vendorEntries.forEach { assertNull(it.validate()) }
         val parsed = BackupCodec.decode(BackupCodec.encode(vendorEntries))
         assertEquals(vendorEntries, parsed)
         val inserted = mutableListOf<CallEntry>()
-        assertEquals(RestoreResult(3, 0), restoreEntries(emptyList(), parsed, inserted::add))
+        assertEquals(RestoreResult(vendorEntries.size, 0), restoreEntries(emptyList(), parsed, inserted::add))
         assertEquals(vendorEntries, inserted)
+        assertEquals(RestoreResult(0, vendorEntries.size), restoreEntries(inserted, parsed) { fail("Duplicate vendor record inserted") })
+    }
+
+    @Test fun rmx5200ExportPreservesNegativeTypeAtRecord29() {
+        val records = List(28) { entry.copy(date = entry.date - it) } +
+            entry.copy(date = entry.date - 28, type = -3, duration = 0)
+        val parsed = BackupCodec.decode(BackupCodec.encode(records))
+        assertEquals(records, parsed)
+        assertEquals(-3, parsed[28].type)
+    }
+
+    @Test fun unsupportedTypeErrorIdentifiesRecordAndRawValue() {
+        val invalid = List(28) { entry } + entry.copy(type = -99)
+        val error = assertThrows(IllegalArgumentException::class.java) { BackupCodec.encode(invalid) }
+        assertEquals("第 29 条记录无法备份：通话类型无效（原始值：-99）", error.message)
     }
 
     @Test fun backupRejectsUnknownAndOverflowingTypes() {

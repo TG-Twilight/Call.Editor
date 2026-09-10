@@ -49,7 +49,7 @@ fun BackupScreen(count: Int, permission: Boolean, busy: Boolean, onPermission: (
                 }
             }
             item { Text("备份包含哪些内容", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
-            item { Text("号码、显示姓名、通话时间、时长、类型与电话账户。文件不包含录音、联系人通讯录或短信。", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            item { Text("号码、显示姓名、通话时间、时长、原始类型与电话账户。文件不包含小布代接标记及关联内容、录音、联系人通讯录或短信。", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             item { Text("文件以明文保存，请存放在可信位置。目前支持本应用导出的通话备份，旧版 Flutter 私有备份尚不兼容。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }

@@ -64,8 +64,11 @@ class MainActivity : ComponentActivity() {
         var permission by remember { mutableStateOf(false) }
         var message by remember { mutableStateOf<String?>(null) }
         val entrySaver = remember { listSaver<CallEntry?, Any>(save = { entry ->
-            if (entry == null) emptyList() else listOf(entry.id, entry.number, entry.name, entry.date, entry.duration, entry.type, entry.accountId ?: "", entry.accountId != null)
-        }, restore = { value -> if (value.isEmpty()) null else CallEntry(value[0] as Long, value[1] as String, value[2] as String, value[3] as Long, value[4] as Long, value[5] as Int, if (value[7] as Boolean) value[6] as String else null) }) }
+            if (entry == null) emptyList() else listOf(entry.id, entry.number, entry.name, entry.date, entry.duration, entry.type, entry.accountId ?: "", entry.accountId != null,
+                entry.vendorDetails != null, entry.vendorDetails?.features ?: 0, entry.vendorDetails?.features != null,
+                entry.vendorDetails?.virtualCallId ?: "", entry.vendorDetails?.virtualCallId != null)
+        }, restore = { value -> if (value.isEmpty()) null else CallEntry(value[0] as Long, value[1] as String, value[2] as String, value[3] as Long, value[4] as Long, value[5] as Int, if (value[7] as Boolean) value[6] as String else null,
+            if (value.size >= 13 && value[8] as Boolean) VendorCallDetails(if (value[10] as Boolean) value[9] as Int else null, if (value[12] as Boolean) value[11] as String else null) else null) }) }
         var edit by rememberSaveable(stateSaver = entrySaver) { mutableStateOf<CallEntry?>(null) }
         var deleting by remember { mutableStateOf<CallEntry?>(null) }
         var imported by remember { mutableStateOf<List<CallEntry>?>(null) }
@@ -141,15 +144,16 @@ class MainActivity : ComponentActivity() {
             Column(Modifier.fillMaxSize().padding(padding)) {
                 if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 when {
-                    edit != null -> EditorScreen(edit!!, loading, onBack = { edit = null }, onSave = { entry ->
+                    edit != null -> EditorScreen(edit!!, loading, onBack = { edit = null }, onSave = { entry, breenoEnabled ->
+                        val baseline = edit
                         runWork("记录已保存") {
-                            withContext(Dispatchers.IO) { repo.save(entry) }
+                            withContext(Dispatchers.IO) { repo.save(entry, breenoEnabled, baseline) }
                             edit = null
                             try { entries = withContext(Dispatchers.IO) { repo.load() } }
                             catch (e: CancellationException) { throw e }
                             catch (e: Exception) { message = "记录已保存，但列表刷新失败。请返回列表刷新，不要重复新增。" }
                         }
-                    }, onDelete = if (edit!!.id != 0L) ({ deleting = edit }) else null)
+                    }, onDelete = if (edit!!.id != 0L) ({ deleting = edit }) else null, vendorSupported = repo.vendorSupported)
                     else -> pageState.SaveableStateProvider(screen) {
                         when (screen) {
                             "settings" -> SettingsScreen(preferences, savingPreferences, permission, onPreferences, askPermission, systemSettings, onAbout = { screen = "about" })
@@ -158,7 +162,7 @@ class MainActivity : ComponentActivity() {
                                 onExport = { runWork { pendingExport = withContext(Dispatchers.IO) { repo.exportJson() }; export.launch("通话记录-${java.time.LocalDate.now()}.json") } },
                                 onImport = { restore.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) })
                             else -> CallsScreen(entries, permission, loading, preferences.compactList, askPermission, systemSettings, onRefresh = { refresh() },
-                                onEdit = { edit = it }, onAdd = { edit = CallEntry(number = "", date = System.currentTimeMillis(), duration = 0, type = 2) })
+                                onEdit = { edit = it }, onAdd = { edit = CallEntry(number = "", date = System.currentTimeMillis(), duration = 0, type = 2) }, vendorSupported = repo.vendorSupported)
                         }
                     }
                 }

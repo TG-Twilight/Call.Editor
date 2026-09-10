@@ -12,16 +12,19 @@ data class CallEntry(
     val duration: Long,
     val type: Int,
     val accountId: String? = null,
+    val vendorDetails: VendorCallDetails? = null,
 )
 
-// Additional raw values observed in existing RMX3031 call logs must remain lossless.
-internal fun isSupportedCallType(type: Int): Boolean = type in 1..7 || type == -1 || type == 51 || type == 52
+// Raw values observed on RMX3031 / Android 15 and RMX5200 / Android 16.
+// Preserve raw values. Meanings for the verified RMX5200 profile are in CallStatus.kt.
+internal fun isSupportedCallType(type: Int): Boolean =
+    type in 1..7 || type == -5 || type == -3 || type == -1 || type == 27 || type == 51 || type == 52
 
 fun CallEntry.validate(): String? = when {
     id < 0 -> "记录编号无效"
     date !in 1..253402300799999L -> "通话日期无效，请使用 1970 至 9999 年之间的日期"
     duration < 0 -> "通话时长不能为负数"
-    !isSupportedCallType(type) -> "通话类型无效"
+    !isSupportedCallType(type) -> "通话类型无效（原始值：$type）"
     number.length > 1024 -> "电话号码过长"
     name.length > 10000 -> "姓名过长"
     (accountId?.length ?: 0) > 10000 -> "通话账户编号过长"
@@ -29,6 +32,19 @@ fun CallEntry.validate(): String? = when {
 }
 
 data class RestoreResult(val inserted: Int, val skipped: Int)
+
+/** Preserve system changes to fields the user did not edit, even while the editor stayed open. */
+internal fun CallEntry.mergeUneditedFields(baseline: CallEntry, current: CallEntry): CallEntry {
+    require(id == baseline.id && id == current.id) { "编辑记录不匹配，请重新打开记录" }
+    return copy(
+        number = if (number == baseline.number) current.number else number,
+        name = if (name == baseline.name) current.name else name,
+        date = if (date == baseline.date) current.date else date,
+        duration = if (duration == baseline.duration) current.duration else duration,
+        type = if (type == baseline.type) current.type else type,
+        accountId = if (accountId == baseline.accountId) current.accountId else accountId,
+    )
+}
 
 class RestoreException(val result: RestoreResult, cause: Exception) : Exception(
     "恢复中断：已新增 ${result.inserted} 条，跳过 ${result.skipped} 条。${cause.localizedMessage ?: "系统未能写入记录"}", cause,
@@ -99,7 +115,7 @@ internal object BackupCodec {
                 try {
                     val record = records.get(index) as? JSONObject ?: throw IllegalArgumentException("记录必须是对象")
                     val type = record.integer("type")
-                    require(type in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() && isSupportedCallType(type.toInt())) { "通话类型无效" }
+                    require(type in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() && isSupportedCallType(type.toInt())) { "通话类型无效（原始值：$type）" }
                     CallEntry(
                         number = record.string("number"),
                         name = record.string("name"),

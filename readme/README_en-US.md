@@ -10,6 +10,7 @@ Application ID: `com.twilight.calleditor` · [Downloads and release notes](https
 
 - Browse system call logs, search names or numbers, filter call types, and group by date.
 - Add, edit, and delete individual entries while preserving unchanged fields, original types, and phone accounts.
+- Select a local SIM / phone account when adding or editing. Phone-state permission is optional; existing editing remains available if denied.
 - Export JSON backups; preview imports and append entries while skipping exact duplicates.
 - System/light/dark themes, dynamic colors, and compact lists, with persistent preferences.
 - An About page with project links and contributor avatars.
@@ -29,7 +30,7 @@ Android 8.0 (API 26) or later; dynamic colors require Android 12 or later. Grant
 
 Saving or deleting changes the system call log. Backups are plain-text JSON containing numbers, display names, timestamps, durations, types, and phone accounts. They do not include recordings, address books, SMS, or every vendor extension. Restore appends and deduplicates; it does not clear existing entries.
 
-The new package installs separately from earlier `com.android.calleditor` builds. Private preferences do not migrate automatically; system call logs do not need to be copied. The original native JSON format identifier `com.android.calleditor.calllog` (version 1) is retained for backup compatibility. Legacy Flutter private backups are not supported.
+The new package installs separately from earlier `com.android.calleditor` builds. Private preferences do not migrate automatically; system call logs do not need to be copied. The JSON format identifier remains `com.android.calleditor.calllog`. New backups use version 2 to preserve full phone-account identity and require a compatible app version; existing native version 1 backups can still be imported. Restore does not remap accounts between devices. Legacy Flutter private backups are not supported.
 
 ## Build
 

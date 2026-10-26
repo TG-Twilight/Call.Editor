@@ -19,13 +19,18 @@ import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave: (CallEntry, Boolean?) -> Unit, onDelete: (() -> Unit)?, vendorSupported: Boolean = false) {
+fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave: (CallEntry, Boolean?) -> Unit, onDelete: (() -> Unit)?, vendorSupported: Boolean = false,
+    accounts: PhoneAccountState = PhoneAccountState(), accountsLoading: Boolean = false,
+    onRefreshAccounts: () -> Unit = {}, onAccountPermission: () -> Unit = {}, onSystemSettings: () -> Unit = {}) {
     val context = LocalContext.current
     var number by rememberSaveable(original.id) { mutableStateOf(original.number) }
     var name by rememberSaveable(original.id) { mutableStateOf(original.name) }
     var duration by rememberSaveable(original.id) { mutableStateOf(original.duration.toString()) }
     var type by rememberSaveable(original.id) { mutableIntStateOf(original.type) }
     var date by rememberSaveable(original.id) { mutableLongStateOf(original.date) }
+    var accountId by rememberSaveable(original.id) { mutableStateOf(original.accountId) }
+    var accountComponent by rememberSaveable(original.id) { mutableStateOf(original.accountComponent) }
+    var pickingAccount by remember { mutableStateOf(false) }
     val originalBreeno = original.isBreenoCall(vendorSupported)
     var breeno by rememberSaveable(original.id) { mutableStateOf(originalBreeno) }
     val canEditBreeno = vendorSupported && original.id != 0L && original.vendorDetails?.features != null && !original.vendorDetails.virtualCallId.isNullOrEmpty()
@@ -36,7 +41,7 @@ fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave:
     val cal = remember(date) { Calendar.getInstance().apply { timeInMillis = date } }
     val dateState = rememberDatePickerState(initialSelectedDateMillis = java.time.Instant.ofEpochMilli(date).atZone(java.time.ZoneId.systemDefault()).toLocalDate().atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(), yearRange = 1900..10000)
     val timeState = rememberTimePickerState(initialHour = cal.get(Calendar.HOUR_OF_DAY), initialMinute = cal.get(Calendar.MINUTE), is24Hour = true)
-    val dirty = number != original.number || name != original.name || duration != original.duration.toString() || type != original.type || date != original.date || breeno != originalBreeno
+    val dirty = number != original.number || name != original.name || duration != original.duration.toString() || type != original.type || date != original.date || breeno != originalBreeno || accountId != original.accountId || accountComponent != original.accountComponent
     fun leave() { if (!busy) { if (dirty) discard = true else onBack() } }
     BackHandler { leave() }
     Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = { TopAppBar(windowInsets = WindowInsets(0, 0, 0, 0), title = { Text(if (original.id == 0L) "新增记录" else "编辑记录") }, navigationIcon = { TextButton(enabled = !busy, onClick = { leave() }) { Text("取消") } }) }) { padding ->
@@ -45,6 +50,26 @@ fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave:
             Text("保存后会更新系统中的通话记录", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(number, { number = it }, label = { Text("电话号码") }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), shape = RoundedCornerShape(16.dp))
             OutlinedTextField(name, { name = it }, label = { Text("显示姓名（可选）") }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
+            Text("SIM / 电话账户", style = MaterialTheme.typography.titleMedium)
+            val selectedAccount = accounts.accounts.firstOrNull { it.id == accountId && it.component == accountComponent }
+            val unchangedAccount = accountId == original.accountId && accountComponent == original.accountComponent
+            val accountLabel = selectedAccount?.label ?: when {
+                accountId == null -> "不指定电话账户"
+                unchangedAccount -> "保留原电话账户"
+                else -> "所选账户暂不可用，请刷新后重选"
+            }
+            OutlinedButton(onClick = { pickingAccount = true }, enabled = !busy && !accountsLoading,
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "选择 SIM / 电话账户" }, contentPadding = PaddingValues(16.dp)) {
+                Text(if (accountsLoading) "正在读取电话账户…" else accountLabel)
+            }
+            Text("选择这条记录使用的 SIM，不会改变系统默认拨号卡。未主动更换时保留原账户。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            accounts.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!accounts.permissionGranted) {
+                    TextButton(enabled = !busy && !accountsLoading, onClick = onAccountPermission) { Text("允许读取电话账户") }
+                    TextButton(enabled = !busy, onClick = onSystemSettings) { Text("应用权限设置") }
+                } else TextButton(enabled = !busy && !accountsLoading, onClick = onRefreshAccounts) { Text("刷新电话账户") }
+            }
             Text("通话类型", style = MaterialTheme.typography.titleMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { editableCallTypes(original.type).forEach { value -> FilterChip(selected = type == value, onClick = { type = value }, enabled = !busy, label = { Text(typeLabel(value)) }) } }
             Text("修改这里只改变通话记录，不会更改系统黑名单；拦截分类不代表电话当时一定未接通。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -63,14 +88,14 @@ fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave:
                 pickDate = true
             }, modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(18.dp)) { Text(dateLabel(date, "yyyy-MM-dd HH:mm:ss")) }
             OutlinedTextField(duration, { duration = it }, label = { Text("通话时长（秒）") }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = RoundedCornerShape(16.dp))
-            original.accountId?.let { Text("SIM / 电话账户：$it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Button(shapes = ButtonDefaults.shapesFor(ButtonDefaults.MediumContainerHeight), enabled = !busy, onClick = {
                 val seconds = duration.toLongOrNull()
                 if (number.isBlank() && (original.id == 0L || original.number.isNotBlank())) error = "请输入电话号码"
                 else if (seconds == null) error = "请输入有效的秒数"
                 else {
-                    val value = original.copy(number = if (number == original.number) number else number.trim(), name = if (name == original.name) name else name.trim(), duration = seconds, type = type, date = date)
+                    val value = original.copy(number = if (number == original.number) number else number.trim(), name = if (name == original.name) name else name.trim(), duration = seconds, type = type, date = date,
+                        accountId = accountId, accountComponent = accountComponent)
                     error = value.validate()
                     if (error == null) onSave(value, if (breeno != originalBreeno) breeno else null)
                 }
@@ -78,6 +103,18 @@ fun EditorScreen(original: CallEntry, busy: Boolean, onBack: () -> Unit, onSave:
             onDelete?.let { TextButton(enabled = !busy, onClick = it, modifier = Modifier.fillMaxWidth()) { Text("删除这条记录", color = MaterialTheme.colorScheme.error) } }
         }
     }
+    if (pickingAccount) AlertDialog(onDismissRequest = { pickingAccount = false }, title = { Text("选择电话账户") },
+        text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { accountId = original.accountId; accountComponent = original.accountComponent; pickingAccount = false }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (original.accountId == null) "不指定电话账户" else "保留原电话账户")
+            }
+            accounts.accounts.forEach { account ->
+                OutlinedButton(onClick = { accountId = account.id; accountComponent = account.component; pickingAccount = false }, modifier = Modifier.fillMaxWidth()) {
+                    Text(account.label)
+                }
+            }
+            if (accounts.accounts.isEmpty()) Text(accounts.message ?: "暂无可用账户，请刷新后重试。")
+        } }, confirmButton = { TextButton(onClick = { pickingAccount = false }) { Text("取消") } })
     if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("放弃未保存的修改？") }, confirmButton = { TextButton(onClick = onBack) { Text("放弃修改") } }, dismissButton = { TextButton(onClick = { discard = false }) { Text("继续编辑") } })
     if (pickDate) DatePickerDialog(onDismissRequest = { pickDate = false }, confirmButton = {
         TextButton(enabled = dateState.selectedDateMillis != null, onClick = { pickDate = false; pickTime = true }) { Text("选择时间") }

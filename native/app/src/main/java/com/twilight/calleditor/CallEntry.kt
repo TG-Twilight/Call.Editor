@@ -13,6 +13,7 @@ data class CallEntry(
     val type: Int,
     val accountId: String? = null,
     val vendorDetails: VendorCallDetails? = null,
+    val accountComponent: String? = null,
 )
 
 // Raw values observed on RMX3031 / Android 15 and RMX5200 / Android 16.
@@ -28,6 +29,7 @@ fun CallEntry.validate(): String? = when {
     number.length > 1024 -> "电话号码过长"
     name.length > 10000 -> "姓名过长"
     (accountId?.length ?: 0) > 10000 -> "通话账户编号过长"
+    (accountComponent?.length ?: 0) > 10000 -> "通话账户组件名过长"
     else -> null
 }
 
@@ -36,13 +38,15 @@ data class RestoreResult(val inserted: Int, val skipped: Int)
 /** Preserve system changes to fields the user did not edit, even while the editor stayed open. */
 internal fun CallEntry.mergeUneditedFields(baseline: CallEntry, current: CallEntry): CallEntry {
     require(id == baseline.id && id == current.id) { "编辑记录不匹配，请重新打开记录" }
+    val accountUnchanged = hasSameAccount(baseline)
     return copy(
         number = if (number == baseline.number) current.number else number,
         name = if (name == baseline.name) current.name else name,
         date = if (date == baseline.date) current.date else date,
         duration = if (duration == baseline.duration) current.duration else duration,
         type = if (type == baseline.type) current.type else type,
-        accountId = if (accountId == baseline.accountId) current.accountId else accountId,
+        accountId = if (accountUnchanged) current.accountId else accountId,
+        accountComponent = if (accountUnchanged) current.accountComponent else accountComponent,
     )
 }
 
@@ -50,8 +54,10 @@ class RestoreException(val result: RestoreResult, cause: Exception) : Exception(
     "恢复中断：已新增 ${result.inserted} 条，跳过 ${result.skipped} 条。${cause.localizedMessage ?: "系统未能写入记录"}", cause,
 )
 
-private data class DuplicateKey(val number: String, val name: String, val date: Long, val duration: Long, val type: Int, val accountId: String?)
-private fun CallEntry.duplicateKey() = DuplicateKey(number, name, date, duration, type, accountId)
+internal fun CallEntry.hasSameAccount(other: CallEntry) = accountId == other.accountId && accountComponent == other.accountComponent
+
+private data class DuplicateKey(val number: String, val name: String, val date: Long, val duration: Long, val type: Int, val accountId: String?, val accountComponent: String?)
+private fun CallEntry.duplicateKey() = DuplicateKey(number, name, date, duration, type, accountId, accountComponent)
 
 internal fun restoreEntries(existing: List<CallEntry>, incoming: List<CallEntry>, insert: (CallEntry) -> Unit): RestoreResult {
     require(incoming.size <= BackupCodec.MAX_ENTRIES) { "备份最多支持 50000 条记录" }
@@ -59,11 +65,13 @@ internal fun restoreEntries(existing: List<CallEntry>, incoming: List<CallEntry>
         require(entry.validate() == null) { "第 ${index + 1} 条记录：${entry.validate()}" }
     }
     val seen = existing.mapTo(HashSet()) { it.duplicateKey() }
+    // Version 1 did not store components: keep its original ID-only deduplication.
+    val legacySeen = seen.mapTo(HashSet()) { it.copy(accountComponent = null) }
     var inserted = 0
     var skipped = 0
     for (entry in incoming) {
         val key = entry.duplicateKey()
-        if (key in seen) {
+        if (key in seen || (entry.accountComponent == null && key in legacySeen)) {
             skipped++
             continue
         }
@@ -71,6 +79,7 @@ internal fun restoreEntries(existing: List<CallEntry>, incoming: List<CallEntry>
             insert(entry.copy(id = 0))
             inserted++
             seen.add(key)
+            legacySeen.add(key.copy(accountComponent = null))
         } catch (error: Exception) {
             throw RestoreException(RestoreResult(inserted, skipped), error)
         }
@@ -95,9 +104,10 @@ internal object BackupCodec {
                 put("duration", entry.duration)
                 put("type", entry.type)
                 put("accountId", entry.accountId ?: JSONObject.NULL)
+                put("accountComponent", entry.accountComponent ?: JSONObject.NULL)
             })
         }
-        return JSONObject().put("format", FORMAT).put("version", 1).put("entries", records).toString()
+        return JSONObject().put("format", FORMAT).put("version", 2).put("entries", records).toString()
             .also(::validateSize)
     }
 
@@ -108,12 +118,14 @@ internal object BackupCodec {
             val root = tokener.nextValue() as? JSONObject ?: throw IllegalArgumentException("备份根节点必须是对象")
             require(tokener.nextClean() == '\u0000') { "备份末尾包含多余内容" }
             require(root.opt("format") == FORMAT) { "不支持此备份格式；旧版备份暂不支持导入" }
-            require(root.integer("version") == 1L) { "不支持此备份版本" }
+            val version = root.integer("version")
+            require(version in 1L..2L) { "不支持此备份版本" }
             val records = root.opt("entries") as? JSONArray ?: throw IllegalArgumentException("备份缺少记录列表")
             require(records.length() <= MAX_ENTRIES) { "备份最多支持 50000 条记录" }
             return List(records.length()) { index ->
                 try {
                     val record = records.get(index) as? JSONObject ?: throw IllegalArgumentException("记录必须是对象")
+                    require(version == 1L || record.has("accountComponent")) { "记录缺少 accountComponent" }
                     val type = record.integer("type")
                     require(type in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() && isSupportedCallType(type.toInt())) { "通话类型无效（原始值：$type）" }
                     CallEntry(
@@ -126,6 +138,11 @@ internal object BackupCodec {
                             null, JSONObject.NULL -> null
                             is String -> value
                             else -> throw IllegalArgumentException("accountId 必须是文本或 null")
+                        },
+                        accountComponent = when (val value = record.opt("accountComponent")) {
+                            null, JSONObject.NULL -> null
+                            is String -> value
+                            else -> throw IllegalArgumentException("accountComponent 必须是文本或 null")
                         },
                     ).also { require(it.validate() == null) { it.validate().orEmpty() } }
                 } catch (error: Exception) {

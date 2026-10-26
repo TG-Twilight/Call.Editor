@@ -68,7 +68,7 @@ class CallEntryTest {
     @Test fun malformedBackupIsRejectedBeforeAnyInsertion() {
         val valid = BackupCodec.encode(listOf(entry))
         for (bad in listOf(
-            valid.replace("\"version\":1", "\"version\":2"),
+            valid.replace("\"version\":2", "\"version\":3"),
             valid.replace("\"duration\":60", "\"duration\":-1"),
             valid.replace("\"duration\":60", "\"duration\":1.5"),
             valid.replace("\"duration\":60", "\"duration\":\"60\""),

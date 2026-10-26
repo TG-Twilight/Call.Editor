@@ -11,7 +11,8 @@ import android.provider.CallLog.Calls
 class CallRepository(context: Context) {
     val vendorSupported = supportsVendorCallStatus(Build.MODEL, Build.VERSION.SDK_INT)
     private val resolver = context.applicationContext.contentResolver
-    private val projection = arrayOf(Calls._ID, Calls.NUMBER, Calls.CACHED_NAME, Calls.DATE, Calls.DURATION, Calls.TYPE, Calls.PHONE_ACCOUNT_ID)
+    private val phoneAccounts = PhoneAccounts(context)
+    private val projection = arrayOf(Calls._ID, Calls.NUMBER, Calls.CACHED_NAME, Calls.DATE, Calls.DURATION, Calls.TYPE, Calls.PHONE_ACCOUNT_ID, Calls.PHONE_ACCOUNT_COMPONENT_NAME)
 
     fun load(): List<CallEntry> = query()
 
@@ -31,18 +32,21 @@ class CallRepository(context: Context) {
     private fun Cursor.toEntry() = CallEntry(
         id = getLong(getColumnIndexOrThrow(Calls._ID)), number = getString(getColumnIndexOrThrow(Calls.NUMBER)).orEmpty(), name = getString(getColumnIndexOrThrow(Calls.CACHED_NAME)).orEmpty(),
         date = getLong(getColumnIndexOrThrow(Calls.DATE)), duration = getLong(getColumnIndexOrThrow(Calls.DURATION)), type = getInt(getColumnIndexOrThrow(Calls.TYPE)), accountId = getString(getColumnIndexOrThrow(Calls.PHONE_ACCOUNT_ID)),
+        accountComponent = getColumnIndex(Calls.PHONE_ACCOUNT_COMPONENT_NAME).takeIf { it >= 0 }?.let { getString(it) },
         vendorDetails = if (vendorSupported) VendorCallDetails(
             getColumnIndex(Calls.FEATURES).takeIf { it >= 0 && !isNull(it) }?.let { getInt(it) },
             getColumnIndex("virtual_call_id").takeIf { it >= 0 && !isNull(it) }?.let { getString(it) },
         ) else null,
     )
 
-    fun save(draft: CallEntry, breenoEnabled: Boolean? = null, baseline: CallEntry? = null) {
+    fun save(draft: CallEntry, breenoEnabled: Boolean? = null, baseline: CallEntry? = null, validateAccountSelection: Boolean = false) {
         require(draft.validate() == null) { draft.validate().orEmpty() }
         val original = if (draft.id == 0L) null else {
             query(draft.id).singleOrNull()
                 ?: throw IllegalStateException("此通话记录已不存在，请刷新列表")
         }
+        val accountChanged = (baseline ?: original)?.let { !draft.hasSameAccount(it) } ?: (draft.accountId != null)
+        if (validateAccountSelection && accountChanged) phoneAccounts.requireAvailable(draft)
         val entry = if (original != null && baseline != null) draft.mergeUneditedFields(baseline, original) else draft
         val breenoEdit = planBreenoEdit(entry, original, breenoEnabled, vendorSupported)
         val values = ContentValues().apply {
@@ -51,8 +55,9 @@ class CallRepository(context: Context) {
             if (original == null || entry.date != original.date) put(Calls.DATE, entry.date)
             if (original == null || entry.duration != original.duration) put(Calls.DURATION, entry.duration)
             if (original == null || entry.type != original.type) put(Calls.TYPE, entry.type)
-            if (entry.accountId != null && (original == null || entry.accountId != original.accountId)) {
-                put(Calls.PHONE_ACCOUNT_ID, entry.accountId)
+            if (original == null || !entry.hasSameAccount(original)) {
+                if (entry.accountId != null || original != null) put(Calls.PHONE_ACCOUNT_ID, entry.accountId)
+                if (entry.accountComponent != null || original != null) put(Calls.PHONE_ACCOUNT_COMPONENT_NAME, entry.accountComponent)
             }
             if (breenoEdit != null) put(Calls.FEATURES, breenoEdit.features)
         }

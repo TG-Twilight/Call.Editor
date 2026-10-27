@@ -28,6 +28,8 @@ $sdkTools = Join-Path $sdkRoot 'build-tools/37.0.0'
 if (-not (Test-Path "$sdkTools/zipalign.exe")) { throw 'Android Build Tools 37.0.0 is required.' }
 $apkSignerJar = Join-Path $sdkTools 'lib/apksigner.jar'
 if (-not (Test-Path -LiteralPath $apkSignerJar)) { throw 'Android SDK apksigner.jar is required.' }
+$apkSignerLauncher = Join-Path $PSScriptRoot 'tools/ApkSignerLauncher.java'
+if (-not (Test-Path -LiteralPath $apkSignerLauncher)) { throw 'The Unicode-safe APK signer launcher is required.' }
 $outputDir = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../dist'))
 New-Item -ItemType Directory -Force $outputDir | Out-Null
 $gradleArgs = @('-p', $PSScriptRoot, ':app:testReleaseUnitTest', ':app:assembleRelease', ':app:lintRelease')
@@ -48,10 +50,15 @@ if (-not $CI) {
     $env:REVIA_KS_PASS = [Environment]::GetEnvironmentVariable('REVIA_KS_PASS', 'User')
     if ([string]::IsNullOrEmpty($env:REVIA_KS_PASS)) { throw 'REVIA_KS_PASS is missing from the Windows user environment.' }
 }
+$previousSignerAlias = [Environment]::GetEnvironmentVariable('REVIA_APK_KEY_ALIAS', 'Process')
 try {
-    & "$env:JAVA_HOME/bin/java.exe" -Xmx1024M -Xss1m -jar $apkSignerJar sign --ks $KeystorePath --ks-key-alias $KeyAlias --ks-pass env:REVIA_KS_PASS --key-pass env:REVIA_KS_PASS --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out $signed $aligned
+    $env:REVIA_APK_KEY_ALIAS = $KeyAlias
+    & "$env:JAVA_HOME/bin/java.exe" -Xmx1024M -Xss1m --class-path $apkSignerJar $apkSignerLauncher sign --ks $KeystorePath --ks-key-alias env:REVIA_APK_KEY_ALIAS --ks-pass env:REVIA_KS_PASS --key-pass env:REVIA_KS_PASS --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out $signed $aligned
     if ($LASTEXITCODE -ne 0) { throw 'Signing failed' }
-} finally { Remove-Item Env:REVIA_KS_PASS }
+} finally {
+    [Environment]::SetEnvironmentVariable('REVIA_APK_KEY_ALIAS', $previousSignerAlias, 'Process')
+    Remove-Item Env:REVIA_KS_PASS
+}
 & "$sdkTools/zipalign.exe" -c -P 16 4 $signed
 if ($LASTEXITCODE -ne 0) { throw 'Alignment verification failed' }
 $verification = & "$env:JAVA_HOME/bin/java.exe" -Xmx1024M -Xss1m -jar $apkSignerJar verify --verbose --print-certs $signed

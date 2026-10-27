@@ -11,6 +11,7 @@
 !/.github/workflows/
 /.github/workflows/*
 !/.github/workflows/android.yml
+!/.github/workflows/signing-probe.yml
 
 **/.gradle/
 **/.kotlin/

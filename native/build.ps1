@@ -26,6 +26,8 @@ if (-not $sdkRoot) { $sdkRoot = $env:ANDROID_SDK_ROOT }
 if (-not $sdkRoot) { $sdkRoot = Join-Path $env:LOCALAPPDATA 'Android/Sdk' }
 $sdkTools = Join-Path $sdkRoot 'build-tools/37.0.0'
 if (-not (Test-Path "$sdkTools/zipalign.exe")) { throw 'Android Build Tools 37.0.0 is required.' }
+$apkSignerJar = Join-Path $sdkTools 'lib/apksigner.jar'
+if (-not (Test-Path -LiteralPath $apkSignerJar)) { throw 'Android SDK apksigner.jar is required.' }
 $outputDir = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../dist'))
 New-Item -ItemType Directory -Force $outputDir | Out-Null
 $gradleArgs = @('-p', $PSScriptRoot, ':app:testReleaseUnitTest', ':app:assembleRelease', ':app:lintRelease')
@@ -47,12 +49,12 @@ if (-not $CI) {
     if ([string]::IsNullOrEmpty($env:REVIA_KS_PASS)) { throw 'REVIA_KS_PASS is missing from the Windows user environment.' }
 }
 try {
-    & "$sdkTools/apksigner.bat" sign --ks $KeystorePath --ks-key-alias $KeyAlias --ks-pass env:REVIA_KS_PASS --key-pass env:REVIA_KS_PASS --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out $signed $aligned
+    & "$env:JAVA_HOME/bin/java.exe" -Xmx1024M -Xss1m -jar $apkSignerJar sign --ks $KeystorePath --ks-key-alias $KeyAlias --ks-pass env:REVIA_KS_PASS --key-pass env:REVIA_KS_PASS --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out $signed $aligned
     if ($LASTEXITCODE -ne 0) { throw 'Signing failed' }
 } finally { Remove-Item Env:REVIA_KS_PASS }
 & "$sdkTools/zipalign.exe" -c -P 16 4 $signed
 if ($LASTEXITCODE -ne 0) { throw 'Alignment verification failed' }
-$verification = & "$sdkTools/apksigner.bat" verify --verbose --print-certs $signed
+$verification = & "$env:JAVA_HOME/bin/java.exe" -Xmx1024M -Xss1m -jar $apkSignerJar verify --verbose --print-certs $signed
 if ($LASTEXITCODE -ne 0) { throw 'Signature verification failed' }
 $certificateDigests = [regex]::Matches(($verification -join "`n"), '(?im)^[^\r\n]*\bcertificate SHA-256 digest:\s*([0-9a-f]{64})\s*$')
 if ($certificateDigests.Count -eq 0) { throw 'No signing certificate found' }

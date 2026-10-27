@@ -47,6 +47,8 @@ The output in `native/app/build/outputs/apk/release/` is an **unsigned release A
 
 The Gradle configuration in `native/` is the source of truth for toolchain, dependency, and SDK versions. The project uses experimental Material3 Expressive APIs.
 
+[GitHub Actions](https://github.com/TG-Twilight/Call.Editor/actions/workflows/android.yml) checks the main branch and PRs when native source or the workflow changes, and supports manual runs. Checks include release unit tests, assembly, and lint. Successful `main` builds in the upstream repository are signed with the maintainer's fixed certificate; APKs, SHA-256 checksums, and signature verification records are retained for 14 days. PRs run checks without signing keys. See [build notes](../native/README.md#github-actions) for CI configuration. GitHub Releases are published separately by the maintainer.
+
 ## Project structure
 
 - `native/`: Android source, tests, and Gradle Wrapper.

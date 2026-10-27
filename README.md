@@ -47,6 +47,8 @@ Windows 使用 `gradlew.bat`。首次构建需要联网下载 Gradle 和 Maven �
 
 具体工具链、依赖与 SDK 版本以 `native/` 中的 Gradle 配置为准。项目使用实验性 Material3 Expressive API。
 
+[GitHub Actions](https://github.com/TG-Twilight/Call.Editor/actions/workflows/android.yml) 在原生源码或工作流变化时自动检查主分支和 PR，也可手动运行。检查包括 release 单元测试、构建与 lint；主仓库的 `main` 通过后使用维护者固定证书签名，提供 APK、SHA-256 和签名验证记录，保留 14 天。PR 仅运行检查，不读取签名密钥。CI 配置见[构建说明](native/README.md#github-actions)，GitHub Release 由维护者另行发布。
+
 ## 目录
 
 ```text

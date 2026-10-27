@@ -29,6 +29,23 @@ Gradle 版本见 `gradle/wrapper/gradle-wrapper.properties`；插件、依赖及
 
 正式证书 SHA-256：`EA385AFC82E19824EEA8A8868ED365DF03E9886BBBA33E47E1E04B43EC65CB67`。脚本会拒绝其他证书。仓库不分发维护者密钥；本地未签名构建不需要密钥。
 
+## GitHub Actions
+
+[Android CI](../.github/workflows/android.yml) 在 `main` 的原生源码／工作流推送、发往 `main` 的相关 PR 和手动运行时执行 release 单元测试、构建及 lint。工作流使用 Windows runner 与完整 JDK，并按工程配置安装 Android SDK。测试和 lint 报告作为独立 artifact 保留 14 天。
+
+主仓库 `main` 的推送或手动运行在检查通过后签名。仓库维护者需在 **Settings → Secrets and variables → Actions** 配置以下 repository secrets：
+
+| Secret | 内容 |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | 既有正式 JKS 文件的 Base64，仅存入 Actions Secret |
+| `ANDROID_KEYSTORE_PASSWORD` | 该密钥库与密钥共同使用的密码 |
+
+Alias 固定为 `秋风のとおり道`，产物必须通过上面的完整证书 SHA-256 校验。缺少签名 Secret 或证书不符会明确失败，不回退到其他密钥。
+
+工作流仅在签名步骤向当前进程注入密码，在 runner 临时目录恢复 JKS，并在结束或失败后清理。`build.ps1 -CI` 只在 GitHub Actions 环境接受当前进程的 `REVIA_KS_PASS`；本机构建仍从 Windows 用户级变量读取密码。不要将 JKS、密码或 Base64 保存到仓库、日志或构建 artifacts。
+
+签名 artifact 仅包含带版本名的 APK、SHA-256 校验文件和签名验证记录，保留 14 天；PR 和其他分支的手动运行只执行检查，不使用签名 Secrets，也不上传未签名 APK。工作流不会自动创建标签或发布 GitHub Release；正式发布由维护者单独执行。
+
 ## 数据兼容
 
 系统 CallLog 是记录来源。编辑只更新变化字段；恢复追加并去重。新增/编辑页可选择本机启用的 SIM / 电话账户；电话状态权限按需申请，拒绝后仍可保留原账户、编辑其他字段。系统能够确认卡槽时显示 SIM 1 / SIM 2，否则使用系统账户名称，不根据账户 ID 猜测卡槽。

@@ -1,0 +1,135 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Release checks and signed APK
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            native/*.gradle.kts
+            native/app/build.gradle.kts
+            native/gradle.properties
+            native/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Ensure Android SDK packages
+        run: |
+          $sdkManager = Join-Path $env:ANDROID_HOME 'cmdline-tools/latest/bin/sdkmanager.bat'
+          & $sdkManager 'platforms;android-36' 'build-tools;37.0.0'
+          if ($LASTEXITCODE -ne 0) { throw 'Android SDK setup failed.' }
+
+      - name: Read application version
+        id: version
+        run: |
+          $config = Get-Content -Raw -Encoding UTF8 'native/app/build.gradle.kts'
+          $versionName = [regex]::Match($config, 'versionName\s*=\s*"([A-Za-z0-9._-]+)"').Groups[1].Value
+          $versionCode = [regex]::Match($config, 'versionCode\s*=\s*(\d+)').Groups[1].Value
+          if (-not $versionName -or -not $versionCode) { throw 'Cannot read application version.' }
+          "basename=CallEditor-$versionName-$versionCode" >> $env:GITHUB_OUTPUT
+
+      - name: Test, build, and lint release
+        run: |
+          & ./native/gradlew.bat -p native --no-daemon :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease
+          if ($LASTEXITCODE -ne 0) { throw 'Release validation failed.' }
+
+      - name: Sign and verify release APK
+        if: >-
+          github.repository == 'TG-Twilight/Call.Editor' &&
+          github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          REVIA_KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          REVIA_KEY_ALIAS: 秋风のとおり道
+        run: |
+          $env:REVIA_KEYSTORE = Join-Path $env:RUNNER_TEMP "Call.Editor-signing-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT.jks"
+          try {
+            if ([string]::IsNullOrEmpty($env:ANDROID_KEYSTORE_BASE64) -or [string]::IsNullOrEmpty($env:REVIA_KS_PASS)) {
+              throw 'ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD repository secrets are required for a signed build.'
+            }
+            $keystoreBytes = [Convert]::FromBase64String($env:ANDROID_KEYSTORE_BASE64)
+            try {
+              [IO.File]::WriteAllBytes($env:REVIA_KEYSTORE, $keystoreBytes)
+            } finally {
+              [Array]::Clear($keystoreBytes, 0, $keystoreBytes.Length)
+              Remove-Item Env:ANDROID_KEYSTORE_BASE64 -ErrorAction SilentlyContinue
+            }
+            & ./native/build.ps1 -Online -CI
+          } finally {
+            if (Test-Path -LiteralPath $env:REVIA_KEYSTORE) {
+              Remove-Item -LiteralPath $env:REVIA_KEYSTORE -Force -ErrorAction Stop
+            }
+            Remove-Item Env:REVIA_KS_PASS -ErrorAction SilentlyContinue
+            Remove-Item Env:ANDROID_KEYSTORE_BASE64 -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove temporary signing file
+        if: always()
+        run: |
+          $signingFile = Join-Path $env:RUNNER_TEMP "Call.Editor-signing-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT.jks"
+          if (Test-Path -LiteralPath $signingFile) {
+            Remove-Item -LiteralPath $signingFile -Force -ErrorAction Stop
+          }
+
+      - name: Upload verified signed APK
+        if: >-
+          success() && github.repository == 'TG-Twilight/Call.Editor' &&
+          github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.version.outputs.basename }}-${{ github.sha }}
+          path: |
+            dist/${{ steps.version.outputs.basename }}.apk
+            dist/${{ steps.version.outputs.basename }}.apk.sha256
+            dist/${{ steps.version.outputs.basename }}-verification.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Upload test and lint reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            native/app/build/test-results/testReleaseUnitTest/TEST-*.xml
+            native/app/build/reports/lint-results-release.html
+            native/app/build/reports/lint-results-release.xml
+            native/app/build/reports/lint-results-release.txt
+          if-no-files-found: warn
+          retention-days: 14

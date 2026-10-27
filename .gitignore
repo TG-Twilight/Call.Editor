@@ -6,6 +6,11 @@
 !/LICENSE
 !/native/
 !/readme/
+!/.github/
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/android.yml
 
 **/.gradle/
 **/.kotlin/
